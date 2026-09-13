@@ -1,0 +1,14 @@
+.top-bar {
+    background-color: #2c1e97;
+    height: 40px;
+    padding: 0 0 0 10px;
+}
+
+.top-bar-content {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: left;
+    height: 100%;
+    width: 100%;
+}

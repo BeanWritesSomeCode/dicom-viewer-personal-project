@@ -1,0 +1,41 @@
+.viewport-grid {
+    position: relative;
+    display: grid;
+    width: 100%;
+    height: 100%;
+    gap: 4px;
+}
+
+.viewport-grid > div {
+    width: 100%;
+    height: 100%;
+}
+
+.single {
+    grid-template-columns: 1fr;
+    grid-template-rows: 1fr;
+}
+
+.double {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr;
+}
+
+.triple {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+}
+
+.triple > .viewport-grid-item-1 {
+    grid-row: span 2 / span 2;
+}
+
+.triple > .viewport-grid-item-3 {
+    grid-column-start: 2;
+}
+
+.quad {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+}
+
