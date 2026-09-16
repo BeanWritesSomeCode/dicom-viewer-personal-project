@@ -1,6 +1,6 @@
 import { volumeLoader, RenderingEngine, Enums, cache, setVolumesForViewports } from '@cornerstonejs/core';
 import useCornerstoneStore from '../stores/cornerstoneStore';
-import viewportManager from '../lib/managers/viewportManager';
+import viewportManager from './managers/viewportManager';
 
 
 export default async function displayImages(imageIds: string[]) {
