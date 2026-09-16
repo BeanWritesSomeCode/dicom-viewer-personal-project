@@ -1,40 +1,32 @@
-import { useEffect } from 'react';
-import useCornerstoneStore from '../stores/cornerstoneStore';
-import StackViewport from './StackViewport';
-import VolumeViewport from './VolumeViewport';
+import { useEffect, type CSSProperties } from 'react';
+import { Enums } from '@cornerstonejs/core';
+import viewportManager from '../lib/managers/viewportManager';
+import CornerstoneViewport from './CornerstoneViewport';
+import type { ViewportLayout } from '../types/types';
 import './ViewportGrid.css';
 
 interface ViewportGridProps {
-    layout: 'single' | 'double' | 'triple' | 'quad';
+    layout: ViewportLayout;
 }
 
-const layouts = {
-    'single': 1,
-    'double': 2,
-    'triple': 3,
-    'quad': 4
-};
-
+// TODO: Keep track of current images/volumes/overlays (if any) and reassign when layout changes. (destroys viewports and creates new ones each time)
 
 export default function ViewportGrid({ layout }: ViewportGridProps) {
-    const cellCount = layouts[layout];
-
+    
     useEffect(() => {
-        const renderingEngine = useCornerstoneStore.getState().renderingEngine;
-        if (!renderingEngine) return;
-
-        const viewports = renderingEngine.getViewports();
-        viewports.forEach(viewport => {
-             console.log(viewport);
-             viewport.resize();
-        });
+        viewportManager.resizeViewports();
     }, [layout]);
 
     return (
-        <div className={`viewport-grid ${layout}`}>
-            {[...Array(cellCount).keys()].map(idx => (
-                <div className={`viewport-grid-item-${idx+1}`} key={idx}>
-                    <VolumeViewport index={idx}/>
+        <div className="viewport-grid" style={{gridTemplateAreas: layout.gridTemplateAreas}}>
+            {layout.viewports.map((v, idx) => (
+                <div className={`viewport-${idx+1}`}>
+                    <CornerstoneViewport 
+                        viewportId={`viewport-${idx}`}
+                        viewportOrientation={v.viewportOrientation}
+                        viewportType={v.viewportType}
+                        viewportBackgroundColor={v.viewportBackgroundColor}
+                    />
                 </div>
             ))}
         </div>

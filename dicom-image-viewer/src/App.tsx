@@ -4,6 +4,7 @@ import TopBar from './components/TopBar';
 import ViewportGrid from './components/ViewportGrid';
 import ValueButton from './components/ValueButton';
 import useCornerstoneStore from './stores/cornerstoneStore';
+import viewportLayouts from './enums/viewportLayouts';
 import './App.css'
 
 function App() {
@@ -35,7 +36,7 @@ function App() {
           action={setViewportLayout}
         />
       </TopBar>
-      <ViewportGrid layout={viewportLayout} />
+      <ViewportGrid layout={viewportLayouts.volumeThreeAxis} />
     </>
   )
 }

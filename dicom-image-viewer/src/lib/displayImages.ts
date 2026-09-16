@@ -1,16 +1,15 @@
 import { volumeLoader, RenderingEngine, Enums, cache, setVolumesForViewports } from '@cornerstonejs/core';
 import useCornerstoneStore from '../stores/cornerstoneStore';
+import viewportManager from '../lib/managers/viewportManager';
 
 
 export default async function displayImages(imageIds: string[]) {
-    const { renderingEngine, viewportInputs } = useCornerstoneStore.getState();
+    const { renderingEngine } = useCornerstoneStore.getState();
 
     if (!renderingEngine) return;
 
-    const stackViewportIds = viewportInputs.filter(input => input.type === Enums.ViewportType.STACK).map(input => input.viewportId);
-    const volumeViewportIds = viewportInputs.filter(
-        input => input.type === Enums.ViewportType.ORTHOGRAPHIC || input.type === Enums.ViewportType.VOLUME_3D
-    ).map(input => input.viewportId);
+    const stackViewportIds = viewportManager.getStackViewports()?.map(v => v.id);
+    const volumeViewportIds = viewportManager.getVolumeViewports()?.map(v => v.id);
 
     loadImagesIntoStackViewports(imageIds, renderingEngine, stackViewportIds);
     loadImagesIntoVolumeViewports(imageIds, renderingEngine, volumeViewportIds);

@@ -4,11 +4,10 @@ import useCornerstoneStore from '../stores/cornerstoneStore';
 import './Viewport.css';
 
 interface VolumeViewportProps {
-    index: number;
-    volumeId?: string;
+    axis: Enums.OrientationAxis;
 }
 
-export default function StackViewport({index, volumeId}: VolumeViewportProps) {
+export default function StackViewport({ axis }: VolumeViewportProps) {
     const viewportElementRef = useRef<HTMLDivElement>(null);
     const renderingEngine = useCornerstoneStore((s) => s.renderingEngine);
 
@@ -16,9 +15,12 @@ export default function StackViewport({index, volumeId}: VolumeViewportProps) {
         if (!renderingEngine || !viewportElementRef.current) return;
 
         const viewportInput: Types.PublicViewportInput = {
-            viewportId: `volume-viewport:${index}`,
+            viewportId: `volume-viewport:${axis}`,
             type: Enums.ViewportType.ORTHOGRAPHIC,
-            element: viewportElementRef.current as HTMLDivElement
+            element: viewportElementRef.current as HTMLDivElement,
+            defaultOptions: {
+                orientation: axis,
+            },
         };
 
         renderingEngine.enableElement(viewportInput);
