@@ -1,4 +1,5 @@
 import { Enums, type Types } from '@cornerstonejs/core';
+import type { ViewportLayout } from '../../types/types';
 import useCornerstoneStore from '../../stores/cornerstoneStore';
 
 
@@ -31,6 +32,22 @@ function resizeViewports(): void {
     renderingEngine.resize();
 }
 
+function enableLayout(layout: ViewportLayout, elements: Map<string, HTMLDivElement>) {
+    for (const v of layout.viewports) {
+        if (!elements.get(v.id)) return;
+        const viewportInput = {
+            viewportId: v.id,
+            type: v.type,
+            element: elements.get(v.id)!,
+            defaultOptions: {
+                orientation: v.orientation,
+                background: v.background,
+            },
+        }
+        addViewport(viewportInput)
+    }
+}
+
 function getViewports() {
     return useCornerstoneStore.getState().renderingEngine?.getViewports() || [];
 }
@@ -57,6 +74,7 @@ const viewportManager = {
     addViewport,
     removeViewport,
     resizeViewports,
+    enableLayout,
     getViewports,
     getVolumeViewports,
     getStackViewports,

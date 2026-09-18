@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react';
 import ImportDicomButton from './components/ImportDicomButton';
 import TopBar from './components/TopBar';
+import TopbarGroup from './components/TopbarGroup';
 import ViewportGrid from './components/ViewportGrid';
 import ValueButton from './components/ValueButton';
 import useCornerstoneStore from './stores/cornerstoneStore';
-import viewportLayouts from './enums/viewportLayouts';
-import './App.css'
+import { viewportLayouts } from './lib/constants';
+import './components/styles.css';
 
 function App() {
   const cornerstoneState = useCornerstoneStore((state) => state);
-  const [viewportLayout, setViewportLayout] = useState<'single' | 'double' | 'triple' | 'quad'>('double');
+  const [viewportLayout, setViewportLayout] = useState<'single' | 'mpr' | 'one-by-three'>('single');
+
+  const layout = viewportLayouts[viewportLayout];
 
   useEffect(() => {
     cornerstoneState.initialize();
@@ -19,24 +22,24 @@ function App() {
     <>
       <TopBar>
         <ImportDicomButton />
-        <ValueButton
-          value="single"
-          action={setViewportLayout}
-        />
-        <ValueButton
-          value="double"
-          action={setViewportLayout}
-        />
-        <ValueButton
-          value="triple"
-          action={setViewportLayout}
-        />
-        <ValueButton
-          value="quad"
-          action={setViewportLayout}
-        />
+        <TopbarGroup
+          spacing="0.5rem"
+        >
+          <ValueButton
+            value="single"
+            action={setViewportLayout}
+          />
+          <ValueButton
+            value="mpr"
+            action={setViewportLayout}
+          />
+          <ValueButton
+            value="one-by-three"
+            action={setViewportLayout}
+          />
+        </TopbarGroup>
       </TopBar>
-      <ViewportGrid layout={viewportLayouts.volumeThreeAxis} />
+      <ViewportGrid layout={layout} />
     </>
   )
 }

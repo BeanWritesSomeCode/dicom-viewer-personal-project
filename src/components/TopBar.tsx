@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import './TopBar.css';
 
 
 interface TopBarProps {

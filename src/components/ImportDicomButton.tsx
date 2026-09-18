@@ -26,7 +26,9 @@ export default function ImportDicomButton() {
 
     return (
         <div>
-            <button onClick={handleButtonClick}>
+            <button className="upload-button"
+              onClick={handleButtonClick}
+            >
                 Upload Files
             </button>
             <input
