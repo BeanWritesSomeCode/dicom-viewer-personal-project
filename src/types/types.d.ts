@@ -12,16 +12,11 @@ import { Enums, CONSTANTS, type Types } from '@cornerstonejs/core';
 //     viewportBackgroundColor?: number[];
 // }
 
+type ViewportProperties = Omit<Types.PublicViewportInput, 'element'>;
+
 interface ViewportLayout {
-    name: string;
-    count: number;
-    viewports: {
-        id: string;
-        orientation: Enums.OrientationAxis;
-        type: Enums.ViewportType;
-        background?: Types.RGB;
-    }[],
-    gridLayout: CSSProperties
+    gridTemplateAreas: string;
+    viewports: ViewportProperties[],
 }
 
 interface ImageSet {

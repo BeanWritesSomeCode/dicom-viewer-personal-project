@@ -2,6 +2,10 @@ import { useRef, useEffect } from 'react';
 import { Enums, type Types } from '@cornerstonejs/core';
 import useCornerstoneStore from '../stores/cornerstoneStore';
 import viewportManager from '../lib/managers/viewportManager';
+
+import useCornerstoneViewport from '../hooks/useCornerstoneViewport';
+import type { ViewportProperties } from '../types/types';
+
 import './Viewport.css';
 
 interface CornerstoneViewportProps {
@@ -46,5 +50,20 @@ export default function CornerstoneViewport(
             <div className="viewport-element" ref={el}>
             </div>
         </div>
+    )
+}
+
+interface NewCornerstoneViewportProps {
+    viewportInput: ViewportProperties;
+}
+
+export function NewCornerstoneViewport({viewportInput}: NewCornerstoneViewportProps) {
+    const { elementRef, viewport, isReady } = useCornerstoneViewport(viewportInput);
+
+    return (
+        <div 
+          ref={elementRef} 
+          style={{width: '100%', height: '100%', gridArea: viewportInput.viewportId}}
+        />
     )
 }

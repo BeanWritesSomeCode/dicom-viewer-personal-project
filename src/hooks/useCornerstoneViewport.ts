@@ -1,9 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Types } from '@cornerstonejs/core';
+import type { Types, Viewport } from '@cornerstonejs/core';
 import cornerstoneService from '../services/cornerstoneService';
+import type { ViewportProperties } from '../types/types';
 
-
-export function useCornerstoneViewport(viewportInput: Types.PublicViewportInput) {
+// Flow: 
+//      elementRef = null
+//      consumer component uses elementRef in <div ref={elementRef}>
+//      component renders
+//      effect runs -> cornerstone viewport mounts
+//
+//      On unmount: 
+//          cornerstone viewport unmounts
+//      
+export default function useCornerstoneViewport(viewportInput: ViewportProperties) {
     const elementRef = useRef<HTMLDivElement | null>(null);
     const [viewport, setViewport] = useState<Types.IViewport | null>(null);
     const [isReady, setIsReady] = useState(false);
@@ -14,7 +23,10 @@ export function useCornerstoneViewport(viewportInput: Types.PublicViewportInput)
             // Safely try to initialize
             await cornerstoneService.initialize();
 
-            cornerstoneService.enableViewport(viewportInput);
+            cornerstoneService.enableViewport({
+                element: elementRef.current as HTMLDivElement,
+                ...viewportInput
+            });
 
             const renderingEngine = cornerstoneService.getRenderingEngine();
             const csViewport = renderingEngine.getViewport(viewportInput.viewportId);
