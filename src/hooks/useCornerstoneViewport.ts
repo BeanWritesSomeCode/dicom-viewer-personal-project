@@ -20,9 +20,16 @@ export default function useCornerstoneViewport(viewportInput: ViewportProperties
     useEffect(() => {
         const setupViewport = async () => {
 
+            if (!elementRef.current) {
+                console.log('Div not yet mounted');
+            } else {
+                console.log('Div mounted');
+            }
+
             // Safely try to initialize
             await cornerstoneService.initialize();
 
+            console.log(viewportInput);
             cornerstoneService.enableViewport({
                 element: elementRef.current as HTMLDivElement,
                 ...viewportInput
@@ -30,6 +37,8 @@ export default function useCornerstoneViewport(viewportInput: ViewportProperties
 
             const renderingEngine = cornerstoneService.getRenderingEngine();
             const csViewport = renderingEngine.getViewport(viewportInput.viewportId);
+
+            console.log(csViewport);
 
             setViewport(csViewport);
             setIsReady(true);

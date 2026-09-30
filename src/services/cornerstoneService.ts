@@ -1,10 +1,14 @@
 import {
     init as coreInit,
     RenderingEngine,
+    volumeLoader,
+    cornerstoneStreamingImageVolumeLoader,
     Enums,
     type Types,
 } from '@cornerstonejs/core';
-import { init as toolsInit } from '@cornerstonejs/tools';
+import { init as toolsInit, segmentation } from '@cornerstonejs/tools';
+import { init as imageLoaderInit } from '@cornerstonejs/dicom-image-loader';
+import { registerDefaultProviders } from '@cornerstonejs/metadata';
 
 const ENGINE_ID = 'EXAMPLE_RENDERING_ENGINE';
 
@@ -15,11 +19,20 @@ let isInitialized = false;
 async function initialize(): Promise<void> {
     if (isInitialized) return;
 
+    volumeLoader.registerUnknownVolumeLoader(
+        cornerstoneStreamingImageVolumeLoader
+    );
+
     await coreInit();
     await toolsInit();
+    imageLoaderInit({ maxWebWorkers: 1 });
+    registerDefaultProviders();
 
+    console.log("Creating rendering engine");
     renderingEngine = new RenderingEngine(ENGINE_ID);
+    console.log("Rendering engine created");
     isInitialized = true;
+    console.log('Initialized');
 }
 
 function getRenderingEngine(): RenderingEngine {
@@ -50,8 +63,27 @@ function disableViewport(viewportId: string): void {
     }
 }
 
+function getStackViewports(): Types.IViewport[] {
+    if (!renderingEngine) return [];
+
+    const viewports = renderingEngine.getViewports();
+    return viewports.filter(viewport => {
+       return viewport.type === Enums.ViewportType.STACK
+    });
+}
+
+function getVolumeViewports(): Types.IViewport[] {
+    if (!renderingEngine) return [];
+
+    const viewports = renderingEngine.getViewports();
+    return viewports.filter(viewport => {
+        return viewport.type === Enums.ViewportType.ORTHOGRAPHIC
+    })
+}
+
 function destroy(): void {
     if (renderingEngine) {
+        console.log('Destroying rendering engine');
         renderingEngine.destroy();
         renderingEngine = null;
     }
@@ -62,6 +94,9 @@ const cornerstoneService = {
     getRenderingEngine,
     enableViewport,
     disableViewport,
+    getViewports: () => {return renderingEngine?.getViewports()},
+    getStackViewports,
+    getVolumeViewports,
     destroy,
 };
 export default cornerstoneService;

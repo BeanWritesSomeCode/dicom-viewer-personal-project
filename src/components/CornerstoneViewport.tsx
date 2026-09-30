@@ -62,6 +62,7 @@ export function NewCornerstoneViewport({viewportInput}: NewCornerstoneViewportPr
 
     return (
         <div 
+          className="border border-gray-300"
           ref={elementRef} 
           style={{width: '100%', height: '100%', gridArea: viewportInput.viewportId}}
         />

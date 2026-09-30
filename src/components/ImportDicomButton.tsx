@@ -37,7 +37,7 @@ export default function ImportDicomButton() {
                 accept=".dcm,.dicom"
                 multiple
                 onChange={handleInputChange}
-                style={{ display: 'none' }}
+                style={{ position: 'absolute', display: 'none' }}
             />
 
         </div>
