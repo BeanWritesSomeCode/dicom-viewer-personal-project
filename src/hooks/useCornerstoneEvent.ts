@@ -15,7 +15,7 @@ type EventType = CornerstoneCoreEvent | CornerstoneToolsEvent;
  * @param eventType The name of the Cornerstone event to subscribe to
  * @param callback The callback to run
  */
-export function useCornerstoneEvent(
+export default function useCornerstoneEvent(
     eventType: EventType,
     callback: (evt: CustomEvent) => void
 ) {

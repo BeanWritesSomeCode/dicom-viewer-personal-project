@@ -34,7 +34,7 @@ export default function CornerstoneViewport(
             background: viewportBackgroundColor as Types.RGB,
         }
     }
-
+    
     useEffect(() => {
         if (!initialized || !el) return;
 
@@ -55,6 +55,7 @@ export default function CornerstoneViewport(
 
 interface NewCornerstoneViewportProps {
     viewportInput: ViewportProperties;
+
 }
 
 export function NewCornerstoneViewport({viewportInput}: NewCornerstoneViewportProps) {

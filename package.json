@@ -18,8 +18,10 @@
     "dcmjs": "^0.52.0",
     "dicom-parser": "^1.8.21",
     "events": "^3.3.0",
+    "immer": "^11.1.21",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.4",
     "zustand": "^5.0.15"
   },
   "devDependencies": {

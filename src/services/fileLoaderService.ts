@@ -1,86 +1,152 @@
-import { imageLoader, metaData, Enums } from '@cornerstonejs/core';
-import cornerstoneDicomImageLoader from '@cornerstonejs/dicom-image-loader';
 import dicomParser from 'dicom-parser';
+import { 
+    imageLoader, 
+    volumeLoader, 
+    metaData, 
+    Enums, 
+    cache, 
+    setVolumesForViewports 
+} from '@cornerstonejs/core';
+import { segmentation, Enums as toolEnums } from '@cornerstonejs/tools';
+import cornerstoneDicomImageLoader from '@cornerstonejs/dicom-image-loader';
+import { useStudyStore, type ParsedInstance, type SeriesMeta } from '../stores/studyStore';
+import cornerstoneService from './cornerstoneService';
+import { buildCornerstoneContours } from '../lib/parseRTSTRUCT';
 
-interface SeriesGroup {
-    seriesInstanceUID: string;
-    modality: string;
-    imageIds: string[];
-}
+const IMAGE_MODALITIES = ['CT'];
 
-const cacheFile = cornerstoneDicomImageLoader.wadouri.fileManager.add;
+export async function loadFiles(files: File[]): Promise<void> {
+    const parsed = [];
 
-function getFile(index: number) {
-    return cornerstoneDicomImageLoader.wadouri.fileManager.get(index) as File;
-}
+    for (const file of files) {
+        const buff = new Uint8Array(await file.arrayBuffer());
 
-async function getDicomP10Dataset(file: Blob) {
-    const buffer = await file.arrayBuffer();
+        try {
+            const dataSet = dicomParser.parseDicom(buff, { 
+                untilTag: 'x7fe0010'
+            });
 
-    try {
-        return dicomParser.parseDicom(new Uint8Array(buffer));
-    } catch (err) {
-        // Not handled in this function
+            const imageId = cornerstoneDicomImageLoader.wadouri.fileManager.add(file);
+
+            const studyInstanceUID = dataSet.string('x0020000d');
+            const seriesInstanceUID = dataSet.string('x0020000e');
+            const modality = dataSet.string('x00080060');
+
+            if (!studyInstanceUID || !seriesInstanceUID || !modality) {
+                const fileIndex = parseInt(imageId.split(':')[1], 10);
+                cornerstoneDicomImageLoader.wadouri.fileManager.remove(fileIndex);
+                continue;
+            }
+
+            const instanceMeta: ParsedInstance = {
+                studyInstanceUID,
+                seriesInstanceUID,
+                modality,
+                patientName: dataSet.string('x00100010'),
+                studyDate: dataSet.string('x00080020'),
+                studyDescription: dataSet.string('x00081030'),
+                seriesDescription: dataSet.string('x0008103e'),
+                seriesNumber: dataSet.int32('x00200011'),
+                imageId,
+            };
+
+            parsed.push(instanceMeta);
+        } catch (err) {
+            continue;
+        }
     }
+    useStudyStore.getState().addInstances(parsed);
 }
 
-function getImageIdFile(imageId: string) {
-    const seperatorIndex = imageId.indexOf(':');
-    if (!(seperatorIndex+1)) return;
+export async function loadCurrentStudy() {
+    const studyUID = useStudyStore.getState().selectedStudyUID;
+    if (studyUID == null) return;
 
-    const fileIndex = parseInt(imageId.slice(seperatorIndex+1));
-    return getFile(fileIndex);
+    const study = useStudyStore.getState().studies[studyUID];
+    if (!study) return;
+
+    for (const seriesUID of study.seriesUIDs) {
+        const series = useStudyStore.getState().series[seriesUID];
+        if (!series) continue;
+
+        if (IMAGE_MODALITIES.includes(series.modality)) {
+            await loadImageSeries(series);
+        }
+        else if (series.modality === "RTSTRUCT") {
+            await loadRTStructSeries(series);
+        }
+
+    }
+    console.log("done loading files");
 }
 
-async function loadLocalFiles(files: FileList) {
-    const imageIds = Array.from(files).map((file) => cacheFile(file));
+export async function displayActiveViewports() {
+    const renderingEngine = cornerstoneService.getRenderingEngine();
+    
+    const viewports = renderingEngine.getViewports();
+    const volumeIds = cache.getVolumes().map(v => v.volumeId);
+    const segmentations = segmentation.state.getSegmentations();
 
-    const loadedImageIds = [];
-    const nonloadedImageIds = [];
+    console.log('Setting display:');
+    console.log(viewports.map(v => v.id));
+    console.log(volumeIds);
+
+    await setVolumesForViewports(renderingEngine,
+        volumeIds.map(v => ({ volumeId: v })),
+        viewports.map(v => v.id),
+        true
+    );
+
+    segmentations.forEach(s => {
+        viewports.forEach(v => {
+        if (v.defaultOptions.orientation == Enums.OrientationAxis.ACQUISITION) {
+            segmentation.addContourRepresentationToViewport(v.id, 
+                [{ segmentationId: s.segmentationId }]
+            );
+        }});
+    });
+}
+
+async function loadImageSeries(series: SeriesMeta) {
+    const imageIds = series.imageIds;
     for (const imageId of imageIds) {
         if (!metaData.get(Enums.MetadataModules.NATURALIZED, imageId)) {
-            try {
-                await imageLoader.loadAndCacheImage(imageId);
-                loadedImageIds.push(imageId);
-            } catch { 
-                nonloadedImageIds.push(imageId);
-            }
+            await imageLoader.loadAndCacheImage(imageId);
         }
     }
 
-    const loadedSeries = groupImageIdsBySeries(loadedImageIds);
-
-    // Future
-    // Choose which series to render (user or programatic)
-    // Load RTSTRUCTS and other modalities.
+    const volumeId = `localImageVolume:${series.seriesInstanceUID}`;
+    if (!cache.getVolume(volumeId)) {
+        await volumeLoader.createAndCacheVolumeFromImages(volumeId, imageIds);
+    }
 }
 
-function groupImageIdsBySeries(imageIds: string[]) {
-    const groups = new Map<string, SeriesGroup>();
+async function loadRTStructSeries(series: SeriesMeta) {
+    const segmentationId = `segmentation:${series.studyInstanceUID}`;
+    if (segmentation.state.getSegmentation(segmentationId)) {
+        return;
+    }
 
-    imageIds.forEach((imageId) => {
-        const seriesModule = metaData.getTyped(Enums.MetadataModules.GENERAL_SERIES, imageId);
-        if (seriesModule) {
-            const { modality, seriesInstanceUID } = seriesModule;
-            const group = groups.get(seriesInstanceUID);
-            if (group) {
-                group.imageIds.push(imageId);
-            } else {
-                groups.set(
-                    seriesInstanceUID, 
-                    {
-                        seriesInstanceUID,
-                        modality,
-                        imageIds: [imageId]
-                    }
-                );
-            }
-        }
-    });
-    return Array.from(groups.values());
+    const imageId = series.imageIds[0];
+    const fileIndex = parseInt(imageId.split(':')[1], 10);
+    const file = cornerstoneDicomImageLoader.wadouri.fileManager.get(fileIndex) as File;
+
+    const buffer = new Uint8Array(await file.arrayBuffer());
+
+    try {
+        const geometryIds = await buildCornerstoneContours(buffer);
+        segmentation.addSegmentations([
+            {
+                segmentationId,
+                representation: {
+                    type: toolEnums.SegmentationRepresentations.Contour,
+                    data: {
+                        geometryIds
+                    },
+                },
+            },
+        ]);
+    } catch (err) {
+        console.warn("Failed to load RTSTRUCT segmentation");
+    }
 }
-
-const fileLoaderService = {
-
-};
-export default fileLoaderService;

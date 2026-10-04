@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import cornerstoneService from '../services/cornerstoneService';
+import { loadCurrentStudy, displayActiveViewports } from '../services/fileLoaderService';
 import { NewCornerstoneViewport } from './CornerstoneViewport';
 import type { ViewportLayout } from '../types/types';
 import './ViewportGrid.css';
@@ -14,6 +15,7 @@ export default function ViewportGrid({ layout }: ViewportGridProps) {
     
     useEffect(() => {
         cornerstoneService.getRenderingEngine().resize();
+        loadCurrentStudy().then(() => { displayActiveViewports() });
     }, [layout]);
 
     return (

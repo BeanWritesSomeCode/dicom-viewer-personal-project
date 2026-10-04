@@ -1,7 +1,9 @@
 import { imageLoader, metaData, Enums } from '@cornerstonejs/core'
+import { segmentation, Enums as toolEnums } from '@cornerstonejs/tools';
 import dicomParser from 'dicom-parser';
 import cornerstoneDicomImageLoader from '@cornerstonejs/dicom-image-loader';
 import type { ImageSet } from '../types/types';
+import { buildCornerstoneContours } from './parseRTSTRUCT';
 
 
 export async function loadLocalDicomImages(files: File[]): Promise<string[]> {
@@ -10,6 +12,44 @@ export async function loadLocalDicomImages(files: File[]): Promise<string[]> {
     files.forEach((file) => imageIdPromises.push(loadLocalDicomImage(file)));
 
     return Promise.all(imageIdPromises);
+}
+
+export async function loadRTStructFile(file: File): Promise<string | undefined> {
+    const buffer = new Uint8Array(await file.arrayBuffer());
+
+    try {
+        const dataSet = dicomParser.parseDicom(buffer);
+        const modality = dataSet.string("x00080060");
+        if (!modality || modality != 'RTSTRUCT') {
+            console.warn('Cannot load RTSTRUCT, modality is not RTSTRUCT');
+            return;
+        }
+    } catch (err) {
+        console.warn("File is not DICOM");
+        return;
+    }
+
+    try {
+        const geometryIds = await buildCornerstoneContours(buffer);
+        const idx = segmentation.state.getSegmentations().length;
+        const segmentationId = `segmentation:${idx}`;
+        segmentation.addSegmentations([
+            {
+                segmentationId,
+                representation: {
+                    type: toolEnums.SegmentationRepresentations.Contour,
+                    data: {
+                        geometryIds
+                    },
+                },
+            },
+        ]);
+        return segmentationId;
+    } catch (err) {
+        console.warn("Failed to parse RTSTRUCT");
+        console.warn(err);
+        return;
+    }
 }
 
 export async function loadLocalDicomImage(file: File): Promise<string> {
