@@ -59,14 +59,14 @@ const viewportLayouts: Record<string, ViewportLayout> = {
                 type: Enums.ViewportType.ORTHOGRAPHIC,
                 viewportId: 'v2',
                 defaultOptions: {
-                    orientation: Enums.OrientationAxis.ACQUISITION
+                    orientation: Enums.OrientationAxis.SAGITTAL
                 }
             },
             {
                 type: Enums.ViewportType.ORTHOGRAPHIC,
                 viewportId: 'v3',
                 defaultOptions: {
-                    orientation: Enums.OrientationAxis.ACQUISITION
+                    orientation: Enums.OrientationAxis.CORONAL
                 }
             }
         ],

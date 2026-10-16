@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import cornerstoneService from '../services/cornerstoneService';
 import { loadCurrentStudy, displayActiveViewports } from '../services/fileLoaderService';
+import { useSegmentationStore } from '../stores/segmentationStore';
 import { NewCornerstoneViewport } from './CornerstoneViewport';
 import type { ViewportLayout } from '../types/types';
 import './ViewportGrid.css';
@@ -15,7 +16,9 @@ export default function ViewportGrid({ layout }: ViewportGridProps) {
     
     useEffect(() => {
         cornerstoneService.getRenderingEngine().resize();
-        loadCurrentStudy().then(() => { displayActiveViewports() });
+        loadCurrentStudy()
+            .then(() => displayActiveViewports())
+            .then(() => useSegmentationStore.getState().syncSegmentations());
     }, [layout]);
 
     return (

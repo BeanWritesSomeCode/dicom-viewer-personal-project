@@ -3,6 +3,7 @@ import {
     RenderingEngine,
     volumeLoader,
     cornerstoneStreamingImageVolumeLoader,
+    eventTarget,
     Enums as coreEnums,
     type Types as coreTypes,
 } from '@cornerstonejs/core';
@@ -17,7 +18,13 @@ import * as csTools from '@cornerstonejs/tools';
 import { StackScrollTool } from '@cornerstonejs/tools';
 import { init as imageLoaderInit } from '@cornerstonejs/dicom-image-loader';
 import { registerDefaultProviders } from '@cornerstonejs/metadata';
-import { viewport } from '@cornerstonejs/tools/utilities';
+import { useViewerStore } from '../stores/viewerStore';
+import { useSegmentationStore } from '../stores/segmentationStore';
+
+type CornerstoneCoreEvent =  keyof typeof coreEnums.Events;
+type CornerstoneToolsEvent = keyof typeof toolEnums.Events;
+
+type EventType = CornerstoneCoreEvent | CornerstoneToolsEvent;
 
 const ENGINE_ID = 'EXAMPLE_RENDERING_ENGINE';
 const TOOL_GROUP_2D_ID = 'TOOL_GROUP_2D';
@@ -28,7 +35,12 @@ let toolGroup3D: toolTypes.IToolGroup | undefined = undefined;
 let renderingEngine: RenderingEngine | null = null;
 let isInitialized = false;
 
-// TODO: Add init options
+const listeners: (() => void)[] = [];
+const on = (evt: EventType, callback: (evt: any) => void) => {
+    eventTarget.addEventListener(evt, callback);
+    listeners.push(() => eventTarget.removeEventListener(evt, callback));
+}
+
 async function initialize(): Promise<void> {
     if (isInitialized) return;
 
@@ -40,6 +52,12 @@ async function initialize(): Promise<void> {
     await toolsInit();
     imageLoaderInit({ maxWebWorkers: 1 });
     registerDefaultProviders();
+
+    on(coreEnums.Events.ELEMENT_ENABLED, syncViewports);
+    on(coreEnums.Events.ELEMENT_DISABLED, syncViewports);
+    on(toolEnums.Events.SEGMENTATION_DATA_MODIFIED, (evt) => {console.log('SEG DATA MODIFIED EVT', evt)});
+    on(toolEnums.Events.SEGMENTATION_MODIFIED, (evt) => {console.log('SEG MODIFIED EVT', evt)});
+    on(toolEnums.Events.SEGMENTATION_REPRESENTATION_MODIFIED, (evt) => {console.log('REP MODIFIED')});
 
     csTools.addTool(StackScrollTool);
 
@@ -76,6 +94,11 @@ function destroy(): void {
         renderingEngine = null;
     }
     ToolGroupManager.destroy();
+    segmentation.state.destroy();
+    for (const l of listeners) {
+        l();
+    }
+    isInitialized = false;
 }
 
 // ====================================
@@ -116,32 +139,43 @@ function disableViewport(viewportId: string): void {
     }
 }
 
-function getStackViewports(): coreTypes.IViewport[] {
-    if (!renderingEngine) return [];
-
-    const viewports = renderingEngine.getViewports();
-    return viewports.filter(viewport => {
-       return viewport.type === coreEnums.ViewportType.STACK
-    });
+function syncViewports(evt: coreTypes.EventTypes.ElementEnabledEventDetail) {
+    const viewportIds = getRenderingEngine().getViewports().map((v) => v.id);
+    useViewerStore.setState({ viewports: viewportIds });
 }
 
-function getVolumeViewports(): coreTypes.IViewport[] {
-    if (!renderingEngine) return [];
-
-    const viewports = renderingEngine.getViewports();
-    return viewports.filter(viewport => {
-        return viewport.type === coreEnums.ViewportType.ORTHOGRAPHIC
-    })
+function syncSegmentations1(evt: toolTypes.EventTypes.SegmentationAddedEventDetail) {
+    const activeViewport = useViewerStore.getState().activeViewport;
+    const segs = segmentation.state.getSegmentations().map(seg => {
+        const indices = Object.keys(seg.segments).map(Number);
+        return {
+            id: seg.segmentationId,
+            label: seg.label,
+            segments: indices.map(i => ({
+                segmentIndex: i,
+                label: seg.segments[i].label,
+                color: segmentation.config.color.getSegmentIndexColor(activeViewport ?? 'v1', seg.segmentationId, i),
+                visible: segmentation.config.visibility.getSegmentIndexVisibility(activeViewport ?? 'v1', { segmentationId: seg.segmentationId, type: toolEnums.SegmentationRepresentations.Contour}, i),
+                active: segmentation.segmentIndex.getActiveSegmentIndex(seg.segmentationId) === i,
+                locked: segmentation.segmentLocking.isSegmentIndexLocked(seg.segmentationId, i),
+            }))
+        }
+    });
+    //useViewerStore.setState({ segmentations: segs });
 }
 
 const cornerstoneService = {
     initialize,
-    getRenderingEngine,
-    enableViewport,
-    disableViewport,
-    getViewports: () => {return renderingEngine?.getViewports()},
-    getStackViewports,
-    getVolumeViewports,
     destroy,
+    getRenderingEngine,
+    viewports: {
+        enableViewport,
+        disableViewport,
+    },
+    segmentation: {
+        setSegmentVisibility: segmentation.config.visibility.setSegmentIndexVisibility,
+        setSegmentColor: segmentation.config.color.setSegmentIndexColor,
+        setStyle: segmentation.config.style.setStyle,
+    }
 };
 export default cornerstoneService;

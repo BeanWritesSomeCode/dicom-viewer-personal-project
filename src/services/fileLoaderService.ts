@@ -12,6 +12,7 @@ import cornerstoneDicomImageLoader from '@cornerstonejs/dicom-image-loader';
 import { useStudyStore, type ParsedInstance, type SeriesMeta } from '../stores/studyStore';
 import cornerstoneService from './cornerstoneService';
 import { buildCornerstoneContours } from '../lib/parseRTSTRUCT';
+import { addFromRTStructSeries } from './segmentationService';
 
 const IMAGE_MODALITIES = ['CT'];
 
@@ -73,7 +74,8 @@ export async function loadCurrentStudy() {
             await loadImageSeries(series);
         }
         else if (series.modality === "RTSTRUCT") {
-            await loadRTStructSeries(series);
+            //await loadRTStructSeries(series);
+            await addFromRTStructSeries(series);
         }
 
     }

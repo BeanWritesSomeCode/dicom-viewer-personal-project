@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Types, Viewport } from '@cornerstonejs/core';
 import cornerstoneService from '../services/cornerstoneService';
+import { useViewerStore } from '../stores/viewerStore';
 import type { ViewportProperties } from '../types/types';
 
 // Flow: 
@@ -30,7 +31,7 @@ export default function useCornerstoneViewport(viewportInput: ViewportProperties
             await cornerstoneService.initialize();
 
             console.log(viewportInput);
-            cornerstoneService.enableViewport({
+            cornerstoneService.viewports.enableViewport({
                 element: elementRef.current as HTMLDivElement,
                 ...viewportInput
             });
@@ -49,7 +50,7 @@ export default function useCornerstoneViewport(viewportInput: ViewportProperties
         return () => {
             setIsReady(false);
             setViewport(null);
-            cornerstoneService.disableViewport(viewportInput.viewportId);
+            cornerstoneService.viewports.disableViewport(viewportInput.viewportId);
         }
     }, [viewportInput]);
 

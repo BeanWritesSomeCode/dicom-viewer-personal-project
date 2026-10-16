@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
+import { NavLink } from 'react-router-dom';
 import ImportDicomButton from '../components/ImportDicomButton';
 import TopBar from '../components/TopBar';
 import TopbarGroup from '../components/TopbarGroup';
 import ViewportGrid from '../components/ViewportGrid';
 import ValueButton from '../components/ValueButton';
+import SegmentDebugButton from '../components/SegmentDebugButton';
 import cornerstoneService from '../services/cornerstoneService';
 import viewportLayouts from '../enums/viewportLayouts';
+import SegmentList from '../components/SegmentList';
 import '../components/styles.css';
 
 type LayoutName = 'singleVolume' | 'volumeBy3d' | 'volumeThreeAxis';
@@ -23,6 +26,7 @@ function MainPage() {
         return () => { 
             cancelled = true; 
             cornerstoneService.destroy();
+            setReady(false);
         };
     }, []);
 
@@ -34,7 +38,8 @@ function MainPage() {
     <>
         <div className="topbar w-full h-10 flex flex-row space-x-10 bg-amber-400">
         <TopbarGroup>
-            <ImportDicomButton />
+            <NavLink to="/">Back</NavLink>
+            <SegmentDebugButton />
         </TopbarGroup>
         <TopbarGroup>
             <ValueButton 
@@ -64,7 +69,7 @@ function MainPage() {
         </div>
         <div className="viewer-container w-full h-full flex flex-row-reverse">
             <div className="viewer-drawer-right h-full w-[25%] flex flex-col bg-violet-300">
-
+                <SegmentList />
             </div>
             <ViewportGrid layout={layout}/>
         </div>

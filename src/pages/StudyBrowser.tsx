@@ -21,8 +21,8 @@ export default function StudyBrowser() {
     };
 
     return (
-        <>
-            <div>
+        <main className="w-full h-full flex flex-col p-2 bg-blue-950">
+            <div className="w-fit h-fit mb-2 pl-0.5 pr-0.5 border">
                 <button
                     onClick={() => inputElementRef.current?.click()}
                 >
@@ -37,10 +37,12 @@ export default function StudyBrowser() {
                     style={{position: 'absolute', display: 'none'}}
                 />
             </div>
-            <ul>
-                {studyUIDs.map((uid) => <StudyRow key={uid} uid={uid} />)}
-            </ul>
-        </>
+            <div className="w-full h-full border-2 border-[#193056]">
+                <ul>
+                    {studyUIDs.map((uid) => <StudyRow key={uid} uid={uid} />)}
+                </ul>
+            </div>
+        </main>
     );
 }
 
@@ -61,14 +63,16 @@ const StudyRow = memo(function StudyRow({ uid }: { uid: string }) {
     );
 
     return (
-        <li
+        <li className="max-w-full max-h-full"
             onClick={handleSelect}
         >
-            <span>{study.patientName}</span>
-            <span>{study.description}</span>
-            <span>{study.studyDate}</span>
-            <span>{modalities.join(', ')}</span>
-            <span>{study.seriesUIDs.length} series</span>
+            <div className="w-full h-6 flex flex-row space-x-2 bg-blue-900 border border-blue-500">
+                <span>{study.patientName}</span>
+                <span>{study.description}</span>
+                <span>{study.studyDate}</span>
+                <span>{modalities.join(', ')}</span>
+                <span>{study.seriesUIDs.length} series</span>
+            </div>
         </li>
     );
 });

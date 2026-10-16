@@ -164,6 +164,11 @@ function parseROIContourSequence(dataSet: DataSet, roiMetaData: Map<number, ROIM
     return contourSequences;
 }
 
+export interface ParsedContourSegmentation {
+    geometryIds: string[];
+    segments: Record<number, { segmentIndex: number, label: string, active: boolean, locked: boolean }>;
+}
+
 export async function buildCornerstoneContours(buffer: Uint8Array<ArrayBufferLike>) {
     const dataSet = dicomParser.parseDicom(buffer);
     const roiMetaData = buildROIMetaData(dataSet);
@@ -181,16 +186,20 @@ export async function buildCornerstoneContours(buffer: Uint8Array<ArrayBufferLik
     console.log('Contour Sets: ', contourSets);
 
     const geometryIds: string[] = [];
+    const segments: ParsedContourSegmentation['segments'] = {};
+
     const promises = contourSets.map((contourSet, idx) => {
-        const color = contourSet.roiColor;
+        const segmentIndex = idx + 1;
+        const label = contourSet.metadata.name ?? `ROI ${contourSet.roiNumber}`;
+        const geometryId = `rtstruct-${contourSet.roiNumber}-${label}`;
+        
         const contourData = contourSet.contourSequence.map((contour) => ({
             points: contour.points,
             type: contour.contourGeometricType as Enums.ContourType,
-            color: color,
-            segmentIndex: idx,
+            color: contourSet.roiColor,
+            segmentIndex,
         }))
 
-        const structSOPInstanceUID = dataSet.string(TAGS.SOPInstanceUID);
         const contourSetData = {
             id: contourSet.metadata.name!,
             data: contourData,
@@ -198,17 +207,27 @@ export async function buildCornerstoneContours(buffer: Uint8Array<ArrayBufferLik
             color: contourSet.roiColor,
             segmentIndex: idx,
         }
-        console.log(contourSetData);
+
         geometryIds.push(contourSetData.id);
+        segments[segmentIndex] = {
+            segmentIndex,
+            label,
+            active: idx === 0,
+            locked: false,
+        };
+
         return geometryLoader.createAndCacheGeometry(contourSetData.id, {
             type: Enums.GeometryType.CONTOUR,
-            geometryData: contourSetData,
-            segmentIndex: idx,
-        })
+            geometryData: {
+                id: geometryId,
+                data: contourData,
+                frameOfReferenceUID: contourSet.metadata.referencedFrameOfReferenceUID!,
+                color: contourSet.roiColor,
+                segmentIndex,
+            },
+        });
     })
     
     await Promise.all(promises);
-    console.log(promises);
-    console.log(geometryIds);
-    return geometryIds;
+    return { geometryIds, segments };
 }
