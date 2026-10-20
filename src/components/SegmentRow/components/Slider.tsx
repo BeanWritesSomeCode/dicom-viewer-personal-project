@@ -6,7 +6,7 @@ interface SliderProps {
     max: number;
     step: number;
     onChange: (e: any) => void;
-    format: (n: number) => number;
+    format: (n: number) => string;
     disabled: boolean;
 }
 

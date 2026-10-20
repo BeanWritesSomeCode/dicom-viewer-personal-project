@@ -84,8 +84,9 @@ export function getStyle(specifier: StyleSpecifier): ContourStyle {
     return segmentation.config.style.getStyle(specifier) as ContourStyle;
 }
 
-export function getSegmentStyle(segmentationId: string, segmentIndex: number) {
+export function getSegmentStyle(viewportId: string, segmentationId: string, segmentIndex: number) {
     return segmentation.config.style.getStyle({
+                viewportId,
                 segmentationId,
                 segmentIndex,
                 type: toolEnums.SegmentationRepresentations.Contour
@@ -161,8 +162,6 @@ const segmentationService = {
 };
 
 export default segmentationService;
-
-segmentation.segmentLocking.setSegmentIndexLocked
 
 // For console debug
 window.segmentHelpers = {

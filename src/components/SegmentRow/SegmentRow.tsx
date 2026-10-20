@@ -2,13 +2,14 @@ import { useState, useRef, useReducer, useId, useCallback } from 'react';
 import { useViewerStore } from '../../stores/viewerStore';
 import { useSegmentationStore } from '../../stores/segmentationStore';
 import segmentationService from '../../services/segmentationService';
-import { rgbaToHex, hexToRgba } from '../../lib/rgbToHex';
 import StylePreview from './components/StylePreview';
 import Lock from './icons/LockIcon';
 import Eye from './icons/EyeIcon';
 import Chevron from './icons/ChevronIcon';
 import  {utilities, type Types as coreTypes } from '@cornerstonejs/core';
 import type { Types as toolTypes } from '@cornerstonejs/tools';
+import Check from './icons/CheckIcon';
+import Slider from './components/Slider';
 
 const DEFAULT_DASH = [6, 4];
 const { hexToRgb, rgbToHex } = utilities.color;
@@ -25,61 +26,71 @@ const parseDash = (dash: string | undefined) => {
 interface SegmentRowProps {
     segmentationId: string,
     segmentIndex: number;
+    viewportId: string;
 }
 
-export default function SegmentRow({ segmentationId, segmentIndex }: SegmentRowProps) {
+export default function SegmentRow({ segmentationId, segmentIndex, viewportId }: SegmentRowProps) {
     const uid = useId();
     const [, forceUpdate] = useReducer((x) => x + 1, 0);
-    const activeViewport = useViewerStore((s) => s.activeViewport);
-    const seg = useSegmentationStore((s) => s.segmentations[segmentationId].segments[segmentIndex]);
-    console.log(`Segment ${segmentIndex}`, seg);
-
     const [expanded, setExpanded] = useState(false);
+    const [mode, setMode] = useState('active');
     const [editing, setEditing] = useState(false);
     const [draft, setDraft] = useState('');
     const inputRef = useRef<HTMLInputElement>(null);
 
-    const rawColor = segmentationService.getSegmentIndexColor(activeViewport ?? 'v1', segmentationId, segmentIndex);
-    const color = rgbToHex(rawColor[0], rawColor[1], rawColor[2]);
-    const visible = segmentationService.getSegmentIndexVisibility(activeViewport ?? 'v1', segmentationId, segmentIndex);
-    const style: toolTypes.ContourStyle = segmentationService.getSegmentStyle(segmentationId, segmentIndex);
+    //const activeViewport = useViewerStore((s) => s.activeViewport);
+    //const seg = useSegmentationStore((s) => s.segmentations[segmentationId].segments[segmentIndex]);
+    //console.log(`Segment ${segmentIndex}`, seg);
 
-    const hexColor = rgbToHex(color[0], color[1], color[2]);
+    //const rawColor = segmentationService.getSegmentIndexColor(activeViewport ?? 'v1', segmentationId, segmentIndex);
+    //const color = rgbToHex(rawColor[0], rawColor[1], rawColor[2]);
+    //const visible = segmentationService.getSegmentIndexVisibility(activeViewport ?? 'v1', segmentationId, segmentIndex);
+    //const style: toolTypes.ContourStyle = segmentationService.getSegmentStyle(activeViewport ?? 'v1', segmentationId, segmentIndex);
+
+    const active = useSegmentationStore((s) => s.segmentations[segmentationId].segments[segmentIndex].active);
+    const label = useSegmentationStore((s) => s.segmentations[segmentationId].segments[segmentIndex].label);
+    const locked = useSegmentationStore((s) => s.segmentations[segmentationId].segments[segmentIndex].locked);
+    const rawColor = useSegmentationStore((s) => s.segmentations[segmentationId].segments[segmentIndex].colors[viewportId]) ?? [255, 0, 0];
+    const visible = useSegmentationStore((s) => s.segmentations[segmentationId].segments[segmentIndex].visibility[viewportId]);
+    const style = useSegmentationStore((s) => s.segmentations[segmentationId].segments[segmentIndex].styles[viewportId]);
+
+    const color = rgbToHex(rawColor[0], rawColor[1], rawColor[2]);
 
     const renderOutline = style.renderOutline ?? false;
     const renderFill = style.renderFill ?? false;
     const outlineWidth = style.outlineWidth ?? 0.3;
     const outlineOpacity = style.outlineOpacity ?? 1;
     const fillAlpha = style.fillAlpha ?? 0.3;
-    const dashed = style.outlineDash; // empty / undefined means solid
+    const dashed = !!style.outlineDash; // empty / undefined means solid
     const outlineDash = parseDash(style.outlineDash) ?? [];
 
     const handleVisibilityChange = useCallback((v: boolean) => {
-      const success = segmentationService.setSegmentIndexVisibility(activeViewport ?? 'v1', segmentationId, segmentIndex, v);
+      const success = segmentationService.setSegmentIndexVisibility(viewportId, segmentationId, segmentIndex, v);
       if (success) forceUpdate();
     }, []);
 
     const handleColorChange = useCallback((color: string) => {
       const newColor = hexToRgb(color);
-      const success = segmentationService.setSegmentIndexColor(activeViewport ?? 'v1', segmentationId, segmentIndex, [newColor.r, newColor.g, newColor.b, 1] as coreTypes.Color);
-      if (success) forceUpdate();
+      const success = segmentationService.setSegmentIndexColor(viewportId, segmentationId, segmentIndex, [newColor.r, newColor.g, newColor.b, 1] as coreTypes.Color);
+      console.log(success);
+      //if (success) forceUpdate();
     }, []);
 
     const handleStyleChange = useCallback((newStyle: Partial<toolTypes.ContourStyle>) => {
-      const success = segmentationService.setSegmentIndexStyle(activeViewport ?? 'v1', segmentationId, segmentIndex, newStyle);
-      if (success) forceUpdate();
+      const success = segmentationService.setSegmentIndexStyle(viewportId, segmentationId, segmentIndex, newStyle);
+      //if (success) forceUpdate();
     }, []);
 
     return (
-      <li className={`cs-item${seg.active ? ' is-active' : ''}${visible ? '': ' is-hidden'}`}>
+      <li className={`cs-item${active ? ' is-active' : ''}${visible ? '': ' is-hidden'}`}>
         <style>{CSS}</style>
 
         <div className="cs-header">
-          <label className="cs-swatch" title="Change color" style={{ background: hexColor }}>
+          <label className="cs-swatch" title="Change color" style={{ background: color }}>
             <input
               type="color"
-              value={hexColor}
-              aria-label={`Color for ${seg.label}`}
+              value={color}
+              aria-label={`Color for ${label}`}
               disabled={false}
               onChange={(e) => {handleColorChange(e.target.value)}}
             />
@@ -103,7 +114,7 @@ export default function SegmentRow({ segmentationId, segmentIndex }: SegmentRowP
                 onDoubleClick={() => setEditing(true)}
                 title="Double-click to rename"
                 >
-                  <span className="cs-label-text">{seg.label}</span>
+                  <span className="cs-label-text">{label}</span>
                   <span className="cs-index">#{segmentIndex}</span>
                   {false && <Lock />}
                 </button>
@@ -111,7 +122,7 @@ export default function SegmentRow({ segmentationId, segmentIndex }: SegmentRowP
           </div>
 
           <StylePreview
-            color={hexColor}
+            color={color}
             outlineWidth={outlineWidth}
             outlineOpacity={outlineOpacity}
             dash={outlineDash}
@@ -123,7 +134,7 @@ export default function SegmentRow({ segmentationId, segmentIndex }: SegmentRowP
           <button
             type="button"
             className="cs-icon-btn"
-            aria-label={visible ? `Hide ${seg.label}` : `Show ${seg.label}`}
+            aria-label={visible ? `Hide ${label}` : `Show ${label}`}
             aria-pressed={visible}
             onClick={() => handleVisibilityChange(!visible)}
           >
@@ -142,7 +153,96 @@ export default function SegmentRow({ segmentationId, segmentIndex }: SegmentRowP
           </button>
         </div>
 
-        {expanded && (<></>)}
+        {expanded && (
+          <div className="cs-panel" id={`${uid}-panel`}>
+            <div className="cs-seg" role="group" aria-label="Style applies to">
+              {['active', 'inactive'].map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  aria-pressed={mode === m}
+                  className={mode === m ? 'on' : ''}
+                  onClick={() => setMode(m)}
+                  >
+                    {m === 'active' ? 'Active' : 'Inactive'}
+                  </button>
+              ))}
+            </div>
+
+            <div className="cs-group">
+              <Check 
+                id={`${uid}-outline`}
+                label="Outline"
+                checked={renderOutline}
+                onChange={(v) => {handleStyleChange({ renderOutline: !renderOutline })}}
+              />
+              <Slider 
+                id={`${uid}-width`}
+                label="Width"
+                value={outlineWidth}
+                min={0.5}
+                max={10}
+                step={0.5}
+                disabled={!renderOutline}
+                onChange={(v) => {handleStyleChange({ outlineWidth: v })}}
+                format={(v) => `${v}px`}
+              />
+              <Slider 
+                id={`${uid}-oop`}
+                label="Opacity"
+                value={outlineOpacity}
+                min={0}
+                max={1}
+                step={0.5}
+                disabled={!renderOutline}
+                onChange={(v) => {handleStyleChange({ outlineOpacity: v })}}
+                format={(v) => `${Math.round(v * 100)}%`}
+              />
+              <div className="cs-row">
+                <Check id={`${uid}-dash`} label="Dashed" checked={dashed} onChange={() => {handleStyleChange({ outlineDash: dashed ? undefined : '6,4'})}} />
+                <div className="cs-dash" aria-hidden={!dashed}>
+                  <label>
+                    <span>Dash</span>
+                    <input 
+                      type="number"
+                      min="0"
+                      step="1"
+                      disabled={!dashed || !renderOutline}
+                      value={(outlineDash ?? DEFAULT_DASH)[0]}
+                      onChange={(e) => handleStyleChange({ outlineDash: `${Math.max(0, Number(e.target.value))},${(outlineDash ?? DEFAULT_DASH)[1]}`})}
+                    />
+                  </label>
+                  <label>
+                    <span>Gap</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      disabled={!dashed || !renderOutline}
+                      value={(outlineDash ?? DEFAULT_DASH)[1]}
+                      onChange={(e) => handleStyleChange({ outlineDash: `${(outlineDash ?? DEFAULT_DASH)[0]},${Math.max(0, Number(e.target.value))}`})}
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="cs-group">
+              <Check id={`${uid}-fill`} label="Fill" checked={renderFill} onChange={() => handleStyleChange({ renderFill: !renderFill })} />
+              <Slider 
+                id={`${uid}-alpha`}
+                label="Fill alpha"
+                value={fillAlpha}
+                min={0}
+                max={1}
+                step={0.05}
+                disabled={!renderFill}
+                onChange={(v) => handleStyleChange({ fillAlpha: v})}
+                format={(v) => `${Math.round(v * 100)}%`}
+              />
+            </div>
+          </div>
+        )}
       </li>
     );
 }

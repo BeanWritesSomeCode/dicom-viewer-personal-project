@@ -17,8 +17,7 @@ export default function ViewportGrid({ layout }: ViewportGridProps) {
     useEffect(() => {
         cornerstoneService.getRenderingEngine().resize();
         loadCurrentStudy()
-            .then(() => displayActiveViewports())
-            .then(() => useSegmentationStore.getState().syncSegmentations());
+            .then(() => displayActiveViewports());
     }, [layout]);
 
     return (

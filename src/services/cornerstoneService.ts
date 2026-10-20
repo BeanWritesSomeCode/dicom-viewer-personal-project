@@ -57,7 +57,8 @@ async function initialize(): Promise<void> {
     on(coreEnums.Events.ELEMENT_DISABLED, syncViewports);
     on(toolEnums.Events.SEGMENTATION_DATA_MODIFIED, (evt) => {console.log('SEG DATA MODIFIED EVT', evt)});
     on(toolEnums.Events.SEGMENTATION_MODIFIED, (evt) => {console.log('SEG MODIFIED EVT', evt)});
-    on(toolEnums.Events.SEGMENTATION_REPRESENTATION_MODIFIED, (evt) => {console.log('REP MODIFIED')});
+    on(toolEnums.Events.SEGMENTATION_REPRESENTATION_ADDED, (evt) => {console.log('REP ADDED', evt)});
+    on(toolEnums.Events.SEGMENTATION_REPRESENTATION_MODIFIED, (evt) => {console.log('REP MODIFIED', evt)});
 
     csTools.addTool(StackScrollTool);
 
@@ -95,6 +96,7 @@ function destroy(): void {
     }
     ToolGroupManager.destroy();
     segmentation.state.destroy();
+    useSegmentationStore.setState({ segmentations: {}});
     for (const l of listeners) {
         l();
     }
